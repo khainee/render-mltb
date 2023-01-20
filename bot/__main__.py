@@ -204,7 +204,7 @@ def ping(update, context):
         editMessage(f'{end_time - start_time} ms ', reply)
 
 def log(update, context):
-    sendLogFile(context.bot, update.message
+    sendLogFile(context.bot, update.message)
 
 help_string = '''
 <b><a href='https://github.com/khainee/render-mltb'>Render-mltb</a></b> - The Ultimate Telegram MIrror-Leech Bot to Upload Your File & Link in Google Drive & Telegram
