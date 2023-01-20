@@ -1,4 +1,3 @@
-
 - ⭐ ပထမဆုံး ဒီ repo ကို public templateလုပ်ပါ။ ဘာdata မှ မပါလို့ **public** ပဲထားပါ။
 - [Render](https://render.com/) ဖွင့်ပြီး free signup လုပ်ပါ။
 - dashboard.render.com ဖွင့်ပြီး new + ကို နှိပ် web service ကို ရွေးပါ
@@ -18,7 +17,7 @@
 ℹ️ A Powerful Pyrogram Based Telegram Mirror Leech Bot Modded by Codewithweeb to directly Mirror to Google Drive or Leech to Telegram, with Multi Direct Links Support for Enhanced Mirroring & Leeching.|
 ---|
     
-### ***Source Code*** : [Repo](https://github.com/weebzone/WZML)
+### ***Source Code*** : [Repo](https://github.com/khainee/render-mltb)
 
 #### Note: `If you Like My Work, Give Stars ⭐ to the Repo and Follow Me on Github`
     
