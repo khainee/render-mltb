@@ -30,7 +30,88 @@ from .helper.telegram_helper.button_build import ButtonMaker
 from bot.modules.wayback import getRandomUserAgent
 from .modules import authorize, list, cancel_mirror, mirror_status, mirror_leech, clone, ytdlp, shell, eval, \
                     delete, count, leech_settings, search, rss, wayback, speedtest, usage, anilist, bt_select, mediainfo, hash, sleep, addons, scraper
-from datetime import datetime 
+from datetime import datetime
+
+try: import heroku3
+except ModuleNotFoundError: srun("pip install heroku3", capture_output=False, shell=True)
+try: import heroku3
+except Exception as f:
+    LOGGER.warning("heroku3 cannot imported. add to your deployer requirements.txt file.")
+    LOGGER.warning(f)
+    HEROKU_APP_NAME = None
+    HEROKU_API_KEY = None
+    
+def getHerokuDetails(h_api_key, h_app_name):
+    try: import heroku3
+    except ModuleNotFoundError: run("pip install heroku3", capture_output=False, shell=True)
+    try: import heroku3
+    except Exception as f:
+        LOGGER.warning("heroku3 cannot imported. add to your deployer requirements.txt file.")
+        LOGGER.warning(f)
+        return None
+    if (not h_api_key) or (not h_app_name): return None
+    try:
+        heroku_api = "https://api.heroku.com"
+        Heroku = heroku3.from_key(h_api_key)
+        app = Heroku.app(h_app_name)
+        useragent = getRandomUserAgent()
+        user_id = Heroku.account().id
+        headers = {
+            "User-Agent": useragent,
+            "Authorization": f"Bearer {h_api_key}",
+            "Accept": "application/vnd.heroku+json; version=3.account-quotas",
+        }
+        path = "/accounts/" + user_id + "/actions/get-quota"
+        session = requests.Session()
+        result = (session.get(heroku_api + path, headers=headers)).json()
+        abc = ""
+        account_quota = result["account_quota"]
+        quota_used = result["quota_used"]
+        quota_remain = account_quota - quota_used
+        if EMOJI_THEME is True:
+            abc += f'<b></b>\n'
+            abc += f'<b>╭─《🌐 HEROKU STATS 🌐》</b>\n'
+            abc += f"<b>├ 💪🏻 FULL</b>: {get_readable_time(account_quota)}\n"
+            abc += f"<b>├ 👎🏻 USED</b>: {get_readable_time(quota_used)}\n"
+            abc += f"<b>├ 👍🏻 FREE</b>: {get_readable_time(quota_remain)}\n"
+        else:
+            abc += f'<b></b>\n'
+            abc += f'<b>╭─《 HEROKU STATS 》</b>\n'
+            abc += f"<b>├ FULL</b>: {get_readable_time(account_quota)}\n"
+            abc += f"<b>├ USED</b>: {get_readable_time(quota_used)}\n"
+            abc += f"<b>├ FREE</b>: {get_readable_time(quota_remain)}\n"
+        # App Quota
+        AppQuotaUsed = 0
+        OtherAppsUsage = 0
+        for apps in result["apps"]:
+            if str(apps.get("app_uuid")) == str(app.id):
+                try:
+                    AppQuotaUsed = apps.get("quota_used")
+                except Exception as t:
+                    LOGGER.error("error when adding main dyno")
+                    LOGGER.error(t)
+                    pass
+            else:
+                try:
+                    OtherAppsUsage += int(apps.get("quota_used"))
+                except Exception as t:
+                    LOGGER.error("error when adding other dyno")
+                    LOGGER.error(t)
+                    pass
+        LOGGER.info(f"This App: {str(app.name)}")
+        if EMOJI_THEME is True:
+            abc += f"<b>├ 🎃 APP USAGE:</b> {get_readable_time(AppQuotaUsed)}\n"
+            abc += f"<b>├ 🗑️ OTHER APP:</b> {get_readable_time(OtherAppsUsage)}\n"
+            abc += f'<b>╰─《 ☣️ {CREDIT_NAME} ☣️ 》</b>'
+        else:
+            abc += f"<b>├ APP USAGE:</b> {get_readable_time(AppQuotaUsed)}\n"
+            abc += f"<b>├ OTHER APP:</b> {get_readable_time(OtherAppsUsage)}\n"
+            abc += f'<b>╰─《 {CREDIT_NAME} 》</b>'
+        return abc
+    except Exception as g:
+        LOGGER.error(g)
+        return None
+
 
 def progress_bar(percentage):
     p_used = FINISHED_PROGRESS_STR
@@ -49,11 +130,11 @@ now=datetime.now(pytz.timezone(f'{TIMEZONE}'))
 
 def stats(update, context):
     if ospath.exists('.git'):
-        if config_dict['EMOJI_THEME']:
-            last_commit = check_output(["git log -1 --date=short --pretty=format:'%cd \n<b>├</b> 🛠<b>From:</b> %cr'"], shell=True).decode()
+        if EMOJI_THEME is True:
+            last_commit = check_output(["git log -1 --date=short --pretty=format:'%cd \n<b>├</b> 🛠<b>From</b> %cr'"], shell=True).decode()
             botVersion = check_output(["git log -1 --date=format:v%y.%m%d.%H%M --pretty=format:%cd"], shell=True).decode()
         else:
-            last_commit = check_output(["git log -1 --date=short --pretty=format:'%cd \n<b>├  From:</b> %cr'"], shell=True).decode()
+            last_commit = check_output(["git log -1 --date=short --pretty=format:'%cd \n<b>├</b> <b>From</b> %cr'"], shell=True).decode()
             botVersion = check_output(["git log -1 --date=format:v%y.%m%d.%H%M --pretty=format:%cd"], shell=True).decode()
     else:
         botVersion = 'No UPSTREAM_REPO'
@@ -79,11 +160,10 @@ def stats(update, context):
     mem_t = get_readable_file_size(memory.total)
     mem_a = get_readable_file_size(memory.available)
     mem_u = get_readable_file_size(memory.used)
-    if config_dict['EMOJI_THEME']:
+    if EMOJI_THEME is True:
             stats = f'<b>╭─《🌐 BOT STATISTICS 🌐》</b>\n' \
                     f'<b>├ 🛠 Updated On: </b>{last_commit}\n'\
                     f'<b>├ ⌛ Uptime: </b>{currentTime}\n'\
-                    f'<b>├ 🤖 Version: </b>{version}\n'\
                     f'<b>├ 🟢 OS Uptime: </b>{osUptime}\n'\
                     f'<b>├ 🖥️ CPU:</b> [{progress_bar(cpuUsage)}] {cpuUsage}%\n'\
                     f'<b>├ 🎮 RAM:</b> [{progress_bar(mem_p)}] {mem_p}%\n'\
@@ -93,10 +173,9 @@ def stats(update, context):
                     f'<b>╰ 🔻 Download Data:</b> {recv}\n\n'
 
     else:
-            stats = f'<b>╭─《🌐 BOT STATISTICS 🌐》</b>\n' \
+            stats = f'<b>╭─《 BOT STATISTICS 》</b>\n' \
                     f'<b>├  Updated On: </b>{last_commit}\n'\
                     f'<b>├  Uptime: </b>{currentTime}\n'\
-                    f'<b>├  Version: </b>{version}\n'\
                     f'<b>├  OS Uptime: </b>{osUptime}\n'\
                     f'<b>├  CPU:</b> [{progress_bar(cpuUsage)}] {cpuUsage}%\n'\
                     f'<b>├  RAM:</b> [{progress_bar(mem_p)}] {mem_p}%\n'\
@@ -107,25 +186,16 @@ def stats(update, context):
 
 
 
-    if config_dict['SHOW_LIMITS_IN_STATS']:
+    if SHOW_LIMITS_IN_STATS is True:
+        torrent_direct = 'No Limit Set' if TORRENT_DIRECT_LIMIT is None else f'{TORRENT_DIRECT_LIMIT}GB/Link'
+        clone_limit = 'No Limit Set' if CLONE_LIMIT is None else f'{CLONE_LIMIT}GB/Link'
+        mega_limit = 'No Limit Set' if MEGA_LIMIT is None else f'{MEGA_LIMIT}GB/Link'
+        leech_limit = 'No Limit Set' if LEECH_LIMIT is None else f'{LEECH_LIMIT}GB/Link'
+        zip_unzip = 'No Limit Set' if ZIP_UNZIP_LIMIT is None else f'{ZIP_UNZIP_LIMIT}GB/Link'
+        total_task = 'No Limit Set' if TOTAL_TASKS_LIMIT is None else f'{TOTAL_TASKS_LIMIT} Total Tasks/Time'
+        user_task = 'No Limit Set' if USER_TASKS_LIMIT is None else f'{USER_TASKS_LIMIT} Tasks/user'
 
-        TORRENT_DIRECT_LIMIT = config_dict['TORRENT_DIRECT_LIMIT']
-        CLONE_LIMIT = config_dict['CLONE_LIMIT']
-        MEGA_LIMIT = config_dict['MEGA_LIMIT']
-        LEECH_LIMIT = config_dict['LEECH_LIMIT']
-        ZIP_UNZIP_LIMIT = config_dict['ZIP_UNZIP_LIMIT']
-        TOTAL_TASKS_LIMIT = config_dict['TOTAL_TASKS_LIMIT']
-        USER_TASKS_LIMIT = config_dict['USER_TASKS_LIMIT']
-
-        torrent_direct = 'No Limit Set' if TORRENT_DIRECT_LIMIT == '' else f'{TORRENT_DIRECT_LIMIT}GB/Link'
-        clone_limit = 'No Limit Set' if CLONE_LIMIT == '' else f'{CLONE_LIMIT}GB/Link'
-        mega_limit = 'No Limit Set' if MEGA_LIMIT == '' else f'{MEGA_LIMIT}GB/Link'
-        leech_limit = 'No Limit Set' if LEECH_LIMIT == '' else f'{LEECH_LIMIT}GB/Link'
-        zip_unzip = 'No Limit Set' if ZIP_UNZIP_LIMIT == '' else f'{ZIP_UNZIP_LIMIT}GB/Link'
-        total_task = 'No Limit Set' if TOTAL_TASKS_LIMIT == '' else f'{TOTAL_TASKS_LIMIT} Total Tasks/Time'
-        user_task = 'No Limit Set' if USER_TASKS_LIMIT == '' else f'{USER_TASKS_LIMIT} Tasks/user'
-
-        if config_dict['EMOJI_THEME']: 
+        if EMOJI_THEME is True: 
             stats += f'<b>╭─《 ⚠️ BOT LIMITS ⚠️ 》</b>\n'\
                      f'<b>├ 🧲 Torrent/Direct: </b>{torrent_direct}\n'\
                      f'<b>├ 🔐 Zip/Unzip: </b>{zip_unzip}\n'\
@@ -135,7 +205,7 @@ def stats(update, context):
                      f'<b>├ 💣 Total Tasks: </b>{total_task}\n'\
                      f'<b>╰ 🔫 User Tasks: </b>{user_task}\n\n'
         else: 
-            stats += f'<b>╭─《 ⚠️ BOT LIMITS ⚠️ 》</b>\n'\
+            stats += f'<b>╭─《  BOT LIMITS  》</b>\n'\
                      f'<b>├  Torrent/Direct: </b>{torrent_direct}\n'\
                      f'<b>├  Zip/Unzip: </b>{zip_unzip}\n'\
                      f'<b>├  Leech: </b>{leech_limit}\n'\
@@ -144,8 +214,12 @@ def stats(update, context):
                      f'<b>├  Total Tasks: </b>{total_task}\n'\
                      f'<b>╰  User Tasks: </b>{user_task}\n\n'
 
-    if config_dict['PICS']:
-        sendPhoto(stats, context.bot, update.message, rchoice(config_dict['PICS']))
+                
+
+    heroku = getHerokuDetails(HEROKU_API_KEY, HEROKU_APP_NAME)
+    if heroku: stats += heroku 
+    if PICS:
+        sendPhoto(stats, context.bot, update.message, random.choice(PICS))
     else:
         sendMessage(stats, context.bot, update.message)
 
@@ -175,24 +249,53 @@ Type /{BotCommands.HelpCommand} to get a list of available commands
 
 
 def restart(update, context):
-    restart_message = sendMessage("Restarting...", context.bot, update.message)
-    if Interval:
-        Interval[0].cancel()
-        Interval.clear()
-    if QbInterval:
-        QbInterval[0].cancel()
-        QbInterval.clear()
-    clean_all()
-    srun(["pkill", "-9", "-f", "gunicorn|aria2c|qbittorrent-nox|ffmpeg"])
-    srun(["python3", "update.py"])
-    with open(".restartmsg", "w") as f:
-        f.truncate(0)
-        f.write(f"{restart_message.chat.id}\n{restart_message.message_id}\n")
-    osexecl(executable, executable, "-m", "bot")
+    cmd = update.effective_message.text.split(' ', 1)
+    dynoRestart = False
+    dynoKill = False
+    if len(cmd) == 2:
+        dynoRestart = (cmd[1].lower()).startswith('d')
+        dynoKill = (cmd[1].lower()).startswith('k')
+    if (not HEROKU_API_KEY) or (not HEROKU_APP_NAME):
+        LOGGER.info("If you want Heroku features, fill HEROKU_APP_NAME HEROKU_API_KEY vars.")
+        dynoRestart = False
+        dynoKill = False
+    if dynoRestart:
+        LOGGER.info("Dyno Restarting.")
+        restart_message = sendMessage("Dyno Restarting.", context.bot, update.message)
+        with open(".restartmsg", "w") as f:
+            f.truncate(0)
+            f.write(f"{restart_message.chat.id}\n{restart_message.message_id}\n")
+        heroku_conn = heroku3.from_key(HEROKU_API_KEY)
+        app = heroku_conn.app(HEROKU_APP_NAME)
+        app.restart()
+    elif dynoKill:
+        LOGGER.info("Killing Dyno. MUHAHAHA")
+        sendMessage("Killed Dyno.", context.bot, update.message)
+        alive.kill()
+        clean_all()
+        heroku_conn = heroku3.from_key(HEROKU_API_KEY)
+        app = heroku_conn.app(HEROKU_APP_NAME)
+        proclist = app.process_formation()
+        for po in proclist:
+            app.process_formation()[po.type].scale(0)
+    else:
+        LOGGER.info("Normally Restarting.")
+        restart_message = sendMessage("Normally Restarting.", context.bot, update.message)
+        if Interval:
+            Interval[0].cancel()
+            Interval.clear()
+        alive.kill()
+        clean_all()
+        srun(["pkill", "-9", "-f", "gunicorn|chrome|firefox|megasdkrest|opera"])
+        srun(["python3", "update.py"])
+        with open(".restartmsg", "w") as f:
+            f.truncate(0)
+            f.write(f"{restart_message.chat.id}\n{restart_message.message_id}\n")
+        osexecl(executable, executable, "-m", "bot")
 
 
 def ping(update, context):
-    if config_dict['EMOJI_THEME']:
+    if EMOJI_THEME is True:
         start_time = int(round(time() * 1000))
         reply = sendMessage("Starting_Ping ⛔", context.bot, update.message)
         end_time = int(round(time() * 1000))
@@ -206,8 +309,9 @@ def ping(update, context):
 def log(update, context):
     sendLogFile(context.bot, update.message)
 
+
 help_string = '''
-<b><a href='https://github.com/khainee/render-mltb'>Render-mltb</a></b> - The Ultimate Telegram MIrror-Leech Bot to Upload Your File & Link in Google Drive & Telegram
+<b><a href='https://github.com/codewithweeb/mirror-with-weeb'>WeebZone</a></b> - The Ultimate Telegram MIrror-Leech Bot to Upload Your File & Link in Google Drive & Telegram
 Choose a help category:
 '''
 
