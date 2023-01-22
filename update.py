@@ -5,12 +5,12 @@ from requests import get as rget
 from dotenv import load_dotenv
 from sys import executable
 
-if ospath.exists('log.txt'):
-    with open('log.txt', 'r+') as f:
+if ospath.exists('botlog.txt'):
+    with open('botlog.txt', 'r+') as f:
         f.truncate(0)
 
 basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    handlers=[FileHandler('log.txt'), StreamHandler()],
+                    handlers=[FileHandler('botlog.txt'), StreamHandler()],
                     level=INFO)
 
 CONFIG_FILE_URL = environ.get('CONFIG_FILE_URL')
@@ -42,7 +42,7 @@ try:
     if len(UPSTREAM_BRANCH) == 0:
        raise TypeError
 except:
-    UPSTREAM_BRANCH = 'update'
+    UPSTREAM_BRANCH = 'beta'
 
 if ospath.exists('.git'):
     srun(["rm", "-rf", ".git"])
