@@ -26,11 +26,7 @@ LOGGER = getLogger(__name__)
 alive = Popen(["python3", "alive.py"])
 sleep(0.5)
 
-def getConfig(name: str):
-    return environ[name]
-
 CONFIG_FILE_URL = environ.get('CONFIG_FILE_URL')
-
 try:
     if len(CONFIG_FILE_URL) == 0:
         raise TypeError
