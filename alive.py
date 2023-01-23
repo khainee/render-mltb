@@ -3,7 +3,7 @@ from requests import get as rget
 from os import environ
 from logging import error as logerror
 
-QB_SERVER_PORT = environ.get('QB_BASE_URL', None)
+QB_BASE_URL = environ.get('QB_BASE_URL', None)
 try:
     if len(QB_BASE_URL) == 0:
         raise TypeError
