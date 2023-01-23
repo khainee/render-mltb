@@ -1,5 +1,6 @@
 import os
 from requests import get as rget
+from dotenv import load_dotenv
 
 CONFIG_FILE_URL = os.environ.get('CONFIG_FILE_URL', None)
 try:
